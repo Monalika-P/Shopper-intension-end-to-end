@@ -4,8 +4,11 @@ import numpy as np
 import tensorflow as tf
 import joblib
 from django.http import JsonResponse
-
+from django.views.decorators.csrf import csrf_exempt
 # Create your views here.
+# for handling the csrf exceptions
+@csrf_exempt
+
 def predict(request):
     # if Post method
     if request.POST is not None:
@@ -38,6 +41,42 @@ def predict(request):
         Other = float(var['Other'])
         Returning_Visitor = float(var['Returning_Visitor'])
         Weekend = float(var['Weekend'])
+
+        # Loading Scalar and model
+
+        scalar = joblib.load('sc.sav')
+        model = tf.saved_model.load('content')
+
+        print(list(model.signatures.keys()))
+        infer = model.signatures['serving_default']
+        print(infer.structured_outputs)
+
+        data = np.array(scalar.fit_transform(np.array([[Administrative,Administrative_Duration,
+                                              Informational,Informational_Duration,
+                                              ProductRelated,ProductRelated_Duration,
+                                              BounceRates,ExitRates,PageValues,SpecialDay,
+                                              OperatingSystems,Browser,Region,TrafficType,
+                                              Dec,Feb,Jul,June,Mar,May,Nov,Oct,Sep,Other,
+                                              Returning_Visitor,Weekend]])))
+
+        print(type(data))
+
+        result = infer(tf.constant(data))
+        result['output_1'][0][0]
+
+        if result['output_1'][0][0] < .5:
+            print("False")
+
+        else:
+            print("True")
+
+        return JsonResponse({"pred": result}, safe=False)
+
+
+
+
+
+
 
 
 
